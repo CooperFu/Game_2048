@@ -1,10 +1,10 @@
 package io.naotou.game_2048;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.Point;
-import android.media.SoundPool;
-import android.provider.MediaStore;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -32,6 +32,7 @@ public class GameView extends GridLayout {
 
         super(context);
         initView();
+
 
     }
 
@@ -134,14 +135,13 @@ public class GameView extends GridLayout {
         //开始游戏的话先清理.
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 4; x++) {
-               Card[x][y].setNum(0);
+                Card[x][y].setNum(0);
             }
         }
+        MainActivity.getMainActivity().clearScore();
         //添加两个随机数
         addRandomNum();
         addRandomNum();
-
-
     }
 
     private void addRandomNum() {
@@ -194,13 +194,14 @@ public class GameView extends GridLayout {
                             //如果 两张卡片相同.
                         } else if (Card[x][y].equals(Card[x1][y])) {
                             Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.swipeleft);
-                           // Card[x1][y].startAnimation(animation);
+                            // Card[x1][y].startAnimation(animation);
                             Card[x][y].startAnimation(animation);
                             //把左边的设置成当前的二倍
                             Card[x][y].setNum(Card[x][y].getNum() * 2);
                             //清空遍历到的
                             Card[x1][y].setNum(0);
                             merge = true;
+                            MainActivity.getMainActivity().addScore(Card[x][y].getNum() * 10);
 
                         }
                         break;
@@ -211,6 +212,7 @@ public class GameView extends GridLayout {
         }
         if (merge) {
             addRandomNum();
+            checkOver();
         }
     }
 
@@ -230,8 +232,9 @@ public class GameView extends GridLayout {
                         } else if (Card[x][y].equals(Card[x][y1])) {
                             Card[x][y].setNum(Card[x][y].getNum() * 2);
                             Card[x][y1].setNum(0);
-                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swipeup));
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.swipeup));
                             merge = true;
+                            MainActivity.getMainActivity().addScore(Card[x][y].getNum() * 10);
                         }
                         break;
                     }
@@ -240,11 +243,13 @@ public class GameView extends GridLayout {
         }
         if (merge) {
             addRandomNum();
+            checkOver();
         }
 
     }
 
     private void swipeDown() {
+
         boolean merge = false;
 
         for (int x = 0; x < 4; x++) {
@@ -259,8 +264,9 @@ public class GameView extends GridLayout {
                         } else if (Card[x][y].equals(Card[x][y1])) {
                             Card[x][y].setNum(Card[x][y].getNum() * 2);
                             Card[x][y1].setNum(0);
-                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swipedown));
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.swipedown));
                             merge = true;
+                            MainActivity.getMainActivity().addScore(Card[x][y].getNum() * 10);
                         }
                         break;
                     }
@@ -269,11 +275,13 @@ public class GameView extends GridLayout {
         }
         if (merge) {
             addRandomNum();
+            checkOver();
         }
 
     }
 
     private void swipeRight() {
+
         boolean merge = false;
         for (int y = 0; y < 4; y++) {
             for (int x = 3; x >= 0; x--) {
@@ -287,8 +295,9 @@ public class GameView extends GridLayout {
                         } else if (Card[x][y].equals(Card[x1][y])) {
                             Card[x][y].setNum(Card[x][y].getNum() * 2);
                             Card[x1][y].setNum(0);
-                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swiperight));
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.swiperight));
                             merge = true;
+                            MainActivity.getMainActivity().addScore(Card[x][y].getNum() * 10);
                         }
                         break;
 
@@ -298,8 +307,37 @@ public class GameView extends GridLayout {
         }
         if (merge) {
             addRandomNum();
+            checkOver();
         }
 
+    }
+
+    private void checkOver() {
+
+        boolean over = true;
+        BreakAll:
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+                if (Card[x][y].getNum() == 0 || x > 0 && (Card[x][y].equals(Card[x - 1][y])) || x < 3 && (Card[x][y].equals(Card[x + 1][y])) || y > 0 && (Card[x][y].equals(Card[x][y - 1])) || y < 3 && (Card[x][y].equals(Card[x][y + 1]))) {
+
+                    //如果能走到这里来, 就代表游戏可以继续.
+                    over = false;
+                    break BreakAll;
+
+                }
+            }
+        }
+        if (over) {
+
+            int i = MainActivity.getMainActivity().endScore();
+            new AlertDialog.Builder(getContext()).setTitle("游戏结束").setMessage("您的最终得分是:" + i + "分!").setPositiveButton("重来", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                    startGame();
+                }
+            }).show();
+        }
     }
 }
 

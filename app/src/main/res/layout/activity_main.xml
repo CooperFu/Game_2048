@@ -18,7 +18,7 @@
             android:gravity="center"
             android:textSize="20sp"
             android:text="@string/score"
-            android:id="@+id/textView"
+            android:id="@+id/textView2"
             android:layout_centerVertical="true"
             />
 
@@ -27,10 +27,10 @@
             android:layout_height="wrap_content"
             android:text="20000"
             android:textSize="18sp"
-            android:layout_toEndOf="@+id/textView"
-            android:id="@+id/textView2"
+            android:layout_toEndOf="@+id/textView2"
+            android:id="@+id/textView"
             android:layout_centerVertical="true"
-            android:layout_toRightOf="@+id/textView"
+            android:layout_toRightOf="@+id/textView2"
             android:layout_marginLeft="20dp"/>
 
         <Button

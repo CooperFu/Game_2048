@@ -1,14 +1,16 @@
 package io.naotou.game_2048;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Point;
-import android.os.Build;
+import android.media.SoundPool;
+import android.provider.MediaStore;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.GridLayout;
 
 import java.util.ArrayList;
@@ -22,8 +24,9 @@ public class GameView extends GridLayout {
 
     public static final String TAG = "GameView";
 
-    private cardView[][] cardViews = new cardView[4][4];
+    private cardView[][] Card = new cardView[4][4];
     private List<Point> emptyList = new ArrayList<Point>();
+
     //保险起见 把所有的构造方法都重写出来, 保证不管怎么进来的 都能执行initView方法.
     public GameView(Context context) {
 
@@ -102,6 +105,8 @@ public class GameView extends GridLayout {
                             } else if (offsetY < 0) {
                                 Log.d(TAG, "上拉");
                                 //上拉
+
+
                                 swipeUp();
                             }
                         }
@@ -120,17 +125,38 @@ public class GameView extends GridLayout {
         //这里是每个卡面的宽度
         int cardWidth = (Math.min(w, h) - 10) / 4;
         addCards(cardWidth, cardWidth);
+
+        startGame();
+
     }
-    private void addRandomNum(){
+
+    public void startGame() {
+        //开始游戏的话先清理.
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+               Card[x][y].setNum(0);
+            }
+        }
+        //添加两个随机数
+        addRandomNum();
+        addRandomNum();
+
+
+    }
+
+    private void addRandomNum() {
+
         emptyList.clear();
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 4; x++) {
-                if (cardViews[x][y].getNum() <= 0) {
+                if (Card[x][y].getNum() <= 0) {
                     emptyList.add(new Point(x, y));
                 }
             }
         }
-
+        Point point = emptyList.remove((int) (Math.random() * emptyList.size()));
+        //10分之一设置4  十分之九设置2.
+        Card[point.x][point.y].setNum(Math.random() > 0.1 ? 2 : 4);
     }
 
     private void addCards(int cardWidth, int cardHeight) {
@@ -141,29 +167,140 @@ public class GameView extends GridLayout {
                 view = new cardView(getContext());
                 view.setNum(0);
                 addView(view, cardWidth, cardHeight);
-                cardViews[x][y] = view;
+                Card[x][y] = view;
             }
         }
     }
 
+    private void swipeLeft() {
+
+        boolean merge = false;
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+                for (int x1 = x + 1; x1 < 4; x1++) {
+                    //这里说明 向左划的时候 右面不为空
+                    if (Card[x1][y].getNum() > 0) {
+                        //如果当前位置是空的话, 就把这个坐标右面的块块放到当前地方去.
+                        if (Card[x][y].getNum() <= 0) {
+                            //把得到的坐标设置给最开始遍历的坐标
+                            Card[x][y].setNum(Card[x1][y].getNum());
+                            //把得到的坐标清空
+                            Card[x1][y].setNum(0);
+
+                            //如果.[x][y]为空,[x1][y]跑到左边, 如果[x2][y]和[x1][y]的值相等,就不会合并.
+                            //就让他多走一次.防止这种情况发生.
+                            x--;
+                            merge = true;
+                            //如果 两张卡片相同.
+                        } else if (Card[x][y].equals(Card[x1][y])) {
+                            Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.swipeleft);
+                           // Card[x1][y].startAnimation(animation);
+                            Card[x][y].startAnimation(animation);
+                            //把左边的设置成当前的二倍
+                            Card[x][y].setNum(Card[x][y].getNum() * 2);
+                            //清空遍历到的
+                            Card[x1][y].setNum(0);
+                            merge = true;
+
+                        }
+                        break;
+
+                    }
+                }
+            }
+        }
+        if (merge) {
+            addRandomNum();
+        }
+    }
 
     private void swipeUp() {
 
+        boolean merge = false;
+
+        for (int x = 0; x < 4; x++) {
+            for (int y = 0; y < 4; y++) {
+                for (int y1 = y + 1; y1 < 4; y1++) {
+                    if (Card[x][y1].getNum() > 0) {
+                        if (Card[x][y].getNum() <= 0) {
+                            Card[x][y].setNum(Card[x][y1].getNum());
+                            Card[x][y1].setNum(0);
+                            y--;
+                            merge = true;
+                        } else if (Card[x][y].equals(Card[x][y1])) {
+                            Card[x][y].setNum(Card[x][y].getNum() * 2);
+                            Card[x][y1].setNum(0);
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swipeup));
+                            merge = true;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if (merge) {
+            addRandomNum();
+        }
 
     }
 
     private void swipeDown() {
+        boolean merge = false;
 
-
-    }
-
-    private void swipeLeft() {
-
+        for (int x = 0; x < 4; x++) {
+            for (int y = 3; y >= 0; y--) {
+                for (int y1 = y - 1; y1 >= 0; y1--) {
+                    if (Card[x][y1].getNum() > 0) {
+                        if (Card[x][y].getNum() <= 0) {
+                            Card[x][y].setNum(Card[x][y1].getNum());
+                            Card[x][y1].setNum(0);
+                            y++;
+                            merge = true;
+                        } else if (Card[x][y].equals(Card[x][y1])) {
+                            Card[x][y].setNum(Card[x][y].getNum() * 2);
+                            Card[x][y1].setNum(0);
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swipedown));
+                            merge = true;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if (merge) {
+            addRandomNum();
+        }
 
     }
 
     private void swipeRight() {
+        boolean merge = false;
+        for (int y = 0; y < 4; y++) {
+            for (int x = 3; x >= 0; x--) {
+                for (int x1 = x - 1; x1 >= 0; x1--) {
+                    if (Card[x1][y].getNum() > 0) {
+                        if (Card[x][y].getNum() <= 0) {
+                            Card[x][y].setNum(Card[x1][y].getNum());
+                            Card[x1][y].setNum(0);
+                            x++;
+                            merge = true;
+                        } else if (Card[x][y].equals(Card[x1][y])) {
+                            Card[x][y].setNum(Card[x][y].getNum() * 2);
+                            Card[x1][y].setNum(0);
+                            Card[x][y].startAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.swiperight));
+                            merge = true;
+                        }
+                        break;
 
+                    }
+                }
+            }
+        }
+        if (merge) {
+            addRandomNum();
+        }
 
     }
 }
+
+
